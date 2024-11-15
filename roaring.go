@@ -1687,7 +1687,7 @@ func (b *Bitmap) countNonEmptyContainers() int {
 // Optimize converts array and bitmap containers to run containers as necessary.
 func (b *Bitmap) Optimize() {
 	b.Containers.UpdateEvery(func(key uint64, c *Container, existed bool) (*Container, bool) {
-		return c.optimize(), true
+		return c.Optimize(), true
 	})
 }
 
@@ -3407,9 +3407,9 @@ func (c *Container) countRuns() (r int32) {
 	return 0
 }
 
-// optimize converts the container to the type which will take up the least
+// Optimize converts the container to the type which will take up the least
 // amount of space.
-func (c *Container) optimize() *Container {
+func (c *Container) Optimize() *Container {
 	if c.N() == 0 {
 		statsHit("optimize/empty")
 		return nil
@@ -5069,7 +5069,7 @@ func unionArrayArrayInPlace(a, b *Container) *Container {
 			// copying in a mapped object into our not-mapped
 			// object.
 			a.setArrayMaybeCopy(b.array(), b.Mapped())
-			return a.optimize()
+			return a.Optimize()
 		}
 		return a
 	}
@@ -5112,7 +5112,7 @@ func unionArrayArrayInPlace(a, b *Container) *Container {
 		a = a.Thaw()
 		a.setArray(output)
 	}
-	return a.optimize()
+	return a.Optimize()
 }
 
 // unionArrayRun optimistically assumes that the result will be a run container,
@@ -5858,7 +5858,7 @@ RUNLOOP:
 		}
 	}
 	output := NewContainerRun(runs)
-	output = output.optimize()
+	output = output.Optimize()
 	return output
 }
 
@@ -7420,7 +7420,7 @@ RUNLOOP:
 	for _, run := range runs {
 		c.n += int32(run.Last-run.Start) + 1
 	}
-	return c.optimize()
+	return c.Optimize()
 }
 
 func differenceRunBitmapInPlace(c, other *Container) *Container {
@@ -7604,14 +7604,14 @@ func ConvertRunToBitmap(c *Container) *Container {
 // runs where that's smaller, otherwise arrays for N < 4096 and
 // bitmaps for N >= 4096).
 func Optimize(c *Container) *Container {
-	return c.optimize()
+	return c.Optimize()
 }
 
 func Union(a, b *Container) (c *Container) {
 	c = union(a, b)
 	// c can be have arrays that are too big, and need
 	// to be optimized into raw bitmaps.
-	return c.optimize()
+	return c.Optimize()
 }
 
 func Difference(a, b *Container) *Container {
