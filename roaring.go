@@ -622,7 +622,7 @@ func (b *Bitmap) CountRange(start, end uint64) (n uint64) {
 
 // Slice returns a slice of all integers in the bitmap.
 func (b *Bitmap) Slice() []uint64 {
-	var a []uint64
+	a := make([]uint64, 0, b.Count())
 	itr := b.Iterator()
 	itr.Seek(0)
 
