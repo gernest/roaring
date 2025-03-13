@@ -4435,7 +4435,7 @@ func ContainerCallback(a *Container, fn func(uint16)) {
 	}
 }
 
-func intersectionCallback(a, b *Container, fn func(uint16)) {
+func IntersectionCallback(a, b *Container, fn func(uint16)) {
 	if a.N() == MaxContainerVal+1 {
 		ContainerCallback(b, fn)
 		return

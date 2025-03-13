@@ -4709,7 +4709,7 @@ func TestIntersectionCallback(t *testing.T) {
 						got = got[:0]
 						expectedContainer := intersect(c1, c2)
 						expected = expectedContainer.Slice()
-						intersectionCallback(c1, c2, hit)
+						IntersectionCallback(c1, c2, hit)
 						if len(got) != len(expected) {
 							complain(t, "wrong length (%d vs %d)", len(expected), len(got))
 						}

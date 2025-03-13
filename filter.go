@@ -708,7 +708,7 @@ func (b *BitmapBitmapFilter) ConsiderData(key FilterKey, data *Container) Filter
 	}
 	var lastErr error
 	matched := false
-	intersectionCallback(data, filter, func(v uint16) {
+	IntersectionCallback(data, filter, func(v uint16) {
 		matched = true
 		err := b.callback(base + uint64(v))
 		if err != nil {
