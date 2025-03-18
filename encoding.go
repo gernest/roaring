@@ -30,6 +30,38 @@ func (c *Container) Encode() []byte {
 	}
 }
 
+func (c *Container) EncodeTo(buf []byte) []byte {
+	if c == nil {
+		return nil
+	}
+	buf = buf[:0]
+	switch c.typeID {
+	case ContainerArray:
+		a := c.array()
+		if len(a) > ArrayMaxSize {
+			c.arrayToBitmap()
+			buf = append(buf, fromArray64(c.bitmap())...)
+			return append(buf, byte(ContainerBitmap))
+		}
+		buf = append(buf, fromArray16(a)...)
+		return append(buf, c.typeID)
+	case ContainerRun:
+		r := c.runs()
+		if len(r) > runMaxSize {
+			c.bitmap()
+			buf = append(buf, fromArray64(c.bitmap())...)
+			return append(buf, byte(ContainerBitmap))
+		}
+		buf = append(buf, fromInterval16(r)...)
+		return append(buf, c.typeID)
+	case ContainerBitmap:
+		buf = append(buf, fromArray64(c.bitmap())...)
+		return append(buf, c.typeID)
+	default:
+		return nil
+	}
+}
+
 func DecodeContainer(value []byte) *Container {
 	data, typ := separate(value)
 	switch typ {

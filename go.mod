@@ -1,6 +1,6 @@
 module github.com/gernest/roaring
 
-go 1.22.2
+go 1.24
 
 require (
 	github.com/molecula/apophenia v0.0.0-20190827192002-68b7a14a478b

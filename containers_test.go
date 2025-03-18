@@ -3,6 +3,7 @@
 package roaring
 
 import (
+	"bytes"
 	"math/rand"
 	"sort"
 	"testing"
@@ -315,5 +316,22 @@ func TestRemakeContainersFrom(t *testing.T) {
 			t.Fatalf("position %d in output: expected %d, got %d",
 				i, v, output[i])
 		}
+	}
+}
+
+func TestEncode(t *testing.T) {
+	ra := NewContainerArray([]uint16{1, 2, 3, 4})
+	buf := make([]byte, ArrayMaxSize)
+	if !bytes.Equal(ra.Encode(), ra.EncodeTo(buf)) {
+		t.Error("invalid encoding")
+	}
+}
+
+func BenchmarkEncodeTo(b *testing.B) {
+	ra := NewContainerArray([]uint16{1, 2, 3, 4})
+	buf := make([]byte, ArrayMaxSize)
+	b.ResetTimer()
+	for b.Loop() {
+		buf = ra.EncodeTo(buf)
 	}
 }
