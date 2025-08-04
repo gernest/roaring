@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
+	"slices"
 	"testing"
 	"testing/quick"
 	"time"
@@ -306,6 +307,12 @@ func TestBitmap_ForEach(t *testing.T) {
 		a = append(a, v)
 		return nil
 	})
+	if !reflect.DeepEqual(a, []uint64{1, 2, 3}) {
+		t.Fatalf("unexpected values: %+v", a)
+	}
+}
+func TestBitmap_RangeAll(t *testing.T) {
+	a := slices.Collect(roaring.NewFileBitmap(1, 2, 3).RangeAll())
 	if !reflect.DeepEqual(a, []uint64{1, 2, 3}) {
 		t.Fatalf("unexpected values: %+v", a)
 	}

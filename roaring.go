@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
+	"iter"
 	"math/bits"
 	"sort"
 	"unsafe"
@@ -658,6 +659,19 @@ func (b *Bitmap) ForEach(fn func(uint64) error) error {
 		}
 	}
 	return nil
+}
+
+func (b *Bitmap) RangeAll() iter.Seq[uint64] {
+	itr := b.Iterator()
+	itr.Seek(0)
+
+	return func(yield func(uint64) bool) {
+		for v, eof := itr.Next(); !eof; v, eof = itr.Next() {
+			if !yield(v) {
+				return
+			}
+		}
+	}
 }
 
 // ForEachRange executes fn for each value in the bitmap between [start, end).
