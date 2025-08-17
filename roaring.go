@@ -391,6 +391,10 @@ func (b *Bitmap) DirectAddN(a ...uint64) (changed int) {
 	return b.directOpN((*Container).add, a...)
 }
 
+func (b *Bitmap) DirectAddNPlain(a ...uint64) {
+	b.directOpNPlain((*Container).add, a...)
+}
+
 // DirectRemoveN behaves analgously to DirectAddN.
 func (b *Bitmap) DirectRemoveN(a ...uint64) (changed int) {
 	return b.directOpN((*Container).remove, a...)
@@ -420,6 +424,23 @@ func (b *Bitmap) directOpN(op func(c *Container, v uint16) (*Container, bool), a
 		}
 	}
 	return changed
+}
+
+func (b *Bitmap) directOpNPlain(op func(c *Container, v uint16) (*Container, bool), a ...uint64) {
+	hb := uint64(0xFFFFFFFFFFFFFFFF) // impossible sentinel value
+	var cont *Container
+	for _, v := range a {
+		if newhb := highbits(v); newhb != hb {
+			hb = newhb
+			cont = b.Containers.GetOrCreate(hb)
+		}
+		newC, _ := op(cont, lowbits(v))
+
+		if newC != cont {
+			b.Containers.Put(hb, newC)
+			cont = newC
+		}
+	}
 }
 
 // DirectAdd adds a value to the bitmap by bypassing the op log. TODO(2.0)
