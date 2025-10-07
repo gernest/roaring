@@ -1909,8 +1909,8 @@ const (
 	MaxContainerVal = 0xffff
 )
 
-var bmFuncs = []func(a ...uint64) *roaring.Bitmap{roaring.NewBitmap, roaring.NewBTreeBitmap}
-var bmFuncNames = []string{"slice", "btree"}
+var bmFuncs = []func(a ...uint64) *roaring.Bitmap{roaring.NewBitmap, roaring.NewBTreeBitmap, roaring.NewMapBitmap}
+var bmFuncNames = []string{"slice", "btree", "map"}
 
 func BenchmarkContainerLinear(b *testing.B) {
 	for i, bmMaker := range bmFuncs {
