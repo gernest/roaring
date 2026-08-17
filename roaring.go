@@ -224,7 +224,6 @@ func (u *unionContainerIterator) Value() (uint64, *Container) {
 	}
 	ret.Repair()
 	return uint64(u.cur), ret
-
 }
 
 func (u *unionContainerIterator) Close() {}
@@ -303,7 +302,6 @@ var NewFileBitmap = NewBTreeBitmap
 // Clone returns a heap allocated copy of the bitmap.
 // Note: The OpWriter IS NOT copied to the new bitmap.
 func (b *Bitmap) Clone() *Bitmap {
-
 	if b == nil {
 		return nil
 	}
@@ -391,8 +389,9 @@ func (b *Bitmap) DirectAddN(a ...uint64) (changed int) {
 	return b.directOpN((*Container).add, a...)
 }
 
-func (b *Bitmap) DirectAddNPlain(a ...uint64) {
-	b.directOpNPlain((*Container).add, a...)
+// DirectAddSeq is like DirectAddN but accept a sequence.
+func (b *Bitmap) DirectAddSeq(a iter.Seq[uint64]) {
+	b.directOpNPlain((*Container).add, a)
 }
 
 // DirectRemoveN behaves analgously to DirectAddN.
@@ -426,10 +425,10 @@ func (b *Bitmap) directOpN(op func(c *Container, v uint16) (*Container, bool), a
 	return changed
 }
 
-func (b *Bitmap) directOpNPlain(op func(c *Container, v uint16) (*Container, bool), a ...uint64) {
+func (b *Bitmap) directOpNPlain(op func(c *Container, v uint16) (*Container, bool), a iter.Seq[uint64]) {
 	hb := uint64(0xFFFFFFFFFFFFFFFF) // impossible sentinel value
 	var cont *Container
-	for _, v := range a {
+	for v := range a {
 		if newhb := highbits(v); newhb != hb {
 			hb = newhb
 			cont = b.Containers.GetOrCreate(hb)
@@ -1741,6 +1740,7 @@ func (ew *errWriter) WriteUint16(b []byte, v uint16) {
 	n, ew.err = ew.w.Write(b)
 	ew.n += n
 }
+
 func (ew *errWriter) WriteUint32(b []byte, v uint32) {
 	if ew.err != nil {
 		return
@@ -1772,7 +1772,7 @@ func (b *Bitmap) WriteTo(w io.Writer) (n int64, err error) {
 // safely.
 func (b *Bitmap) writeToUnoptimized(w io.Writer) (n int64, err error) {
 	// Remove empty containers before persisting.
-	//b.removeEmptyContainers()
+	// b.removeEmptyContainers()
 
 	containerCount := b.countNonEmptyContainers()
 	byte2 := make([]byte, 2)
@@ -1798,8 +1798,8 @@ func (b *Bitmap) writeToUnoptimized(w io.Writer) (n int64, err error) {
 		key, c := citer.Value()
 		// Verify container count before writing.
 		// TODO: instead of commenting this out, we need to make it a configuration option
-		//count := c.count()
-		//assert(c.count() == c.n, "cannot write container count, mismatch: count=%d, n=%d", count, c.n)
+		// count := c.count()
+		// assert(c.count() == c.n, "cannot write container count, mismatch: count=%d, n=%d", count, c.n)
 		if c.N() > 0 {
 			ew.WriteUint64(byte8, key)
 			ew.WriteUint16(byte2, uint16(c.typ()))
@@ -2429,7 +2429,6 @@ func (b *Bitmap) ImportRoaringBits(data []byte, clear bool, log bool, rowSize ui
 // single row which is used for determining existence. All row references are removed and only the column
 // is considered.
 func (b *Bitmap) MergeRoaringRawIteratorIntoExists(itr RoaringIterator, rowSize uint64) error {
-
 	if itr == nil {
 		return errors.New("nil RoaringIterator passed to MergeRoaringRawIteratorIntoExists")
 	}
@@ -2811,12 +2810,12 @@ func (b *Bitmap) Flip(start, end uint64) *Bitmap {
 	result := NewBitmap()
 	itr := b.Iterator()
 	v, eof := itr.Next()
-	//copy over previous bits.
+	// copy over previous bits.
 	for v < start && !eof {
 		result.DirectAdd(v)
 		v, eof = itr.Next()
 	}
-	//flip bits in range .
+	// flip bits in range .
 	for i := start; i <= end; i++ {
 		if eof {
 			result.DirectAdd(i)
@@ -2826,7 +2825,7 @@ func (b *Bitmap) Flip(start, end uint64) *Bitmap {
 			result.DirectAdd(i)
 		}
 	}
-	//add remaining.
+	// add remaining.
 	for !eof {
 		result.DirectAdd(v)
 		v, eof = itr.Next()
@@ -3314,7 +3313,6 @@ func (c *Container) arrayAdd(v uint16) (*Container, bool) {
 	array[i] = v
 	c.setArray(array)
 	return c, true
-
 }
 
 func (c *Container) bitmapAdd(v uint16) (*Container, bool) {
@@ -3768,7 +3766,7 @@ func (c *Container) bitmapToArray() *Container {
 		c.bitmapRepair()
 		array, fail, n = makeArray(bitmap, make([]uint16, c.N()))
 		if fail {
-			//this should not be able to happen under any circumstance
+			// this should not be able to happen under any circumstance
 			panic("bitmapToArray failure")
 		}
 
@@ -5045,9 +5043,10 @@ func union(a, b *Container) (c *Container) {
 		}
 	}
 }
-func Merge(a, b []uint16) {
 
+func Merge(a, b []uint16) {
 }
+
 func unionArrayArray(a, b *Container) *Container {
 	statsHit("union/ArrayArray")
 	if a.N() == 0 {
@@ -5199,7 +5198,7 @@ func (c *Container) runAppendInterval(v Interval16) int32 {
 	}
 
 	last := runs[len(runs)-1]
-	if last.Last == MaxContainerVal { //protect against overflow
+	if last.Last == MaxContainerVal { // protect against overflow
 		return 0
 	}
 	if last.Last+1 >= v.Start && v.Last > last.Last {
@@ -5541,7 +5540,6 @@ func unionRunRunInPlace(a, b *Container) *Container {
 		a = a.runToBitmap()
 	}
 	return a
-
 }
 
 // unionInterval16InPlace merges two slice of intervals in place (in a).
@@ -5609,7 +5607,6 @@ func unionInterval16InPlace(a, b []Interval16) ([]Interval16, int32) {
 			if state == 0 && (i1 == 0 || i2 == 0) {
 				// we are clear and start a new interval
 				val.Start = arr[i1]
-
 			}
 
 			state += iiMap[i1]
@@ -5706,7 +5703,6 @@ func unionInterval16InPlace(a, b []Interval16) ([]Interval16, int32) {
 // appendInterval16At appends or sets val in a at off position
 // The function returns modified a ([]interval16) and new offset (off)
 func appendInterval16At(a []Interval16, val Interval16, off int) ([]Interval16, int) {
-
 	if off > 0 && int32(val.Start)-int32(a[off-1].Last) <= 1 {
 		a[off-1].Last = val.Last
 		return a, off
@@ -5914,7 +5910,7 @@ func differenceRunBitmap(a, b *Container) *Container {
 			idx, exp := int(bit>>6), bit&63
 			if (bb[idx]>>exp)&1 != 0 {
 				if run.Start == bit {
-					if bit == 65535 { //overflow
+					if bit == 65535 { // overflow
 						add = false
 					}
 
@@ -5938,7 +5934,7 @@ func differenceRunBitmap(a, b *Container) *Container {
 				}
 			}
 
-			if bit == 65535 { //overflow
+			if bit == 65535 { // overflow
 				break
 			}
 		}
@@ -6403,8 +6399,10 @@ func (op *op) WriteTo(w io.Writer) (n int64, err error) {
 	return int64(nn), err
 }
 
-var minOpSize = 13
-var maxBatchSize = uint64(1 << 59)
+var (
+	minOpSize    = 13
+	maxBatchSize = uint64(1 << 59)
+)
 
 // UnmarshalBinary decodes data into an op.
 func (op *op) UnmarshalBinary(data []byte) error {
@@ -6658,10 +6656,10 @@ func xorArrayRun(a, b *Container) *Container {
 		lastI = i
 		lastJ = j
 
-		if i < na && (j >= nb || va < vb.Start) { //before
+		if i < na && (j >= nb || va < vb.Start) { // before
 			n += output.runAppendInterval(Interval16{Start: va, Last: va})
 			i++
-		} else if j < nb && (i >= na || va > vb.Last) { //after
+		} else if j < nb && (i >= na || va > vb.Last) { // after
 			n += output.runAppendInterval(vb)
 			j++
 		} else if va > vb.Start {
@@ -6684,7 +6682,6 @@ func xorArrayRun(a, b *Container) *Container {
 				j++
 				i++
 			}
-
 		} else { // we know va == vb.start
 			if vb.Start == MaxContainerVal { // protect overflow
 				j++
@@ -6721,18 +6718,18 @@ func xorCompare(x *xorstm) (r1 Interval16, hasData bool) {
 		return r1, false
 	}
 
-	if x.va.Last < x.vb.Start { //va  before
+	if x.va.Last < x.vb.Start { // va  before
 		x.vaValid = false
 		r1 = x.va
 		hasData = true
-	} else if x.vb.Last < x.va.Start { //vb before
+	} else if x.vb.Last < x.va.Start { // vb before
 		x.vbValid = false
 		r1 = x.vb
 		hasData = true
 	} else if x.va.Start == x.vb.Start && x.va.Last == x.vb.Last { // Equal
 		x.vaValid = false
 		x.vbValid = false
-	} else if x.va.Start <= x.vb.Start && x.va.Last >= x.vb.Last { //vb inside
+	} else if x.va.Start <= x.vb.Start && x.va.Last >= x.vb.Last { // vb inside
 		x.vbValid = false
 		if x.va.Start != x.vb.Start {
 			r1 = Interval16{Start: x.va.Start, Last: x.vb.Start - 1}
@@ -6741,7 +6738,6 @@ func xorCompare(x *xorstm) (r1 Interval16, hasData bool) {
 
 		if x.vb.Last == MaxContainerVal { // Check for overflow
 			x.vaValid = false
-
 		} else {
 			x.va.Start = x.vb.Last + 1
 			if x.va.Start > x.va.Last {
@@ -6749,14 +6745,14 @@ func xorCompare(x *xorstm) (r1 Interval16, hasData bool) {
 			}
 		}
 
-	} else if x.vb.Start <= x.va.Start && x.vb.Last >= x.va.Last { //va inside
+	} else if x.vb.Start <= x.va.Start && x.vb.Last >= x.va.Last { // va inside
 		x.vaValid = false
 		if x.vb.Start != x.va.Start {
 			r1 = Interval16{Start: x.vb.Start, Last: x.va.Start - 1}
 			hasData = true
 		}
 
-		if x.va.Last == MaxContainerVal { //check for overflow
+		if x.va.Last == MaxContainerVal { // check for overflow
 			x.vbValid = false
 		} else {
 			x.vb.Start = x.va.Last + 1
@@ -6765,7 +6761,7 @@ func xorCompare(x *xorstm) (r1 Interval16, hasData bool) {
 			}
 		}
 
-	} else if x.va.Start < x.vb.Start && x.va.Last <= x.vb.Last { //va first overlap
+	} else if x.va.Start < x.vb.Start && x.va.Last <= x.vb.Last { // va first overlap
 		x.vaValid = false
 		r1 = Interval16{Start: x.va.Start, Last: x.vb.Start - 1}
 		hasData = true
@@ -6777,7 +6773,7 @@ func xorCompare(x *xorstm) (r1 Interval16, hasData bool) {
 				x.vbValid = false
 			}
 		}
-	} else if x.vb.Start < x.va.Start && x.vb.Last <= x.va.Last { //vb first overlap
+	} else if x.vb.Start < x.va.Start && x.vb.Last <= x.va.Last { // vb first overlap
 		x.vbValid = false
 		r1 = Interval16{Start: x.vb.Start, Last: x.va.Start - 1}
 		hasData = true
@@ -7201,7 +7197,6 @@ func (b *Bitmap) DifferenceInPlace(others ...*Bitmap) {
 
 	for _, key := range removeContainerKeys {
 		b.Containers.Remove(key)
-
 	}
 	target.Containers.Repair()
 }
@@ -7484,7 +7479,7 @@ func differenceRunBitmapInPlace(c, other *Container) *Container {
 		for bit := inputRun.Start; bit <= inputRun.Last; bit++ {
 			if other.bitmapContains(bit) {
 				if run.Start == bit {
-					if bit == 65535 { //overflow
+					if bit == 65535 { // overflow
 						add = false
 					}
 
@@ -7504,7 +7499,7 @@ func differenceRunBitmapInPlace(c, other *Container) *Container {
 				}
 			}
 
-			if bit == 65535 { //overflow
+			if bit == 65535 { // overflow
 				break
 			}
 		}
@@ -7607,8 +7602,7 @@ func (b *Bitmap) Roaring() []byte {
 	return buf.Bytes()
 }
 
-//RBF exports to be reconsidered as we progress
-
+// RBF exports to be reconsidered as we progress
 func (b *Bitmap) Put(key uint64, c *Container) {
 	b.Containers.Put(key, c)
 }
@@ -7616,9 +7610,11 @@ func (b *Bitmap) Put(key uint64, c *Container) {
 func AsBitmap(c *Container) []uint64 {
 	return c.bitmap()
 }
+
 func AsArray(c *Container) []uint16 {
 	return c.array()
 }
+
 func ContainerType(c *Container) byte {
 	return c.typ()
 }
@@ -7630,6 +7626,7 @@ func AsRuns(c *Container) []Interval16 {
 func ConvertArrayToBitmap(c *Container) *Container {
 	return c.arrayToBitmap()
 }
+
 func ConvertRunToBitmap(c *Container) *Container {
 	return c.runToBitmap()
 }
@@ -7739,9 +7736,11 @@ func (c *Container) Slice() (r []uint16) {
 func fromArray16(a []uint16) []byte {
 	return (*[8192]byte)(unsafe.Pointer(&a[0]))[: len(a)*2 : len(a)*2]
 }
+
 func fromArray64(a []uint64) []byte {
 	return (*[8192]byte)(unsafe.Pointer(&a[0]))[:8192:8192]
 }
+
 func fromInterval16(a []Interval16) []byte {
 	return (*[8192]byte)(unsafe.Pointer(&a[0]))[: len(a)*4 : len(a)*4]
 }
